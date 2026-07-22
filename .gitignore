@@ -7,6 +7,9 @@
 # Ignore bundler config.
 /.bundle
 
+# Ignore vendored gems installed by the Docker backend container.
+/backend/vendor/bundle/
+
 # Ignore all logfiles and tempfiles.
 /backend/log/*
 /backend/tmp/*
