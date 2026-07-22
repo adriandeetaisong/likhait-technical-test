@@ -1,54 +1,31 @@
 -- Create database if not exists
-CREATE DATABASE IF NOT EXISTS expense_system_development CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS expense_system_development CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
 USE expense_system_development;
 
--- Create categories table
-CREATE TABLE IF NOT EXISTS categories (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL UNIQUE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_name (name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Schema mirrors the Rails migrations (backend/db/migrate) so the database is
+-- usable immediately, while `rails db:migrate` (run by the backend container on
+-- every start) remains in charge of the schema:
+-- - The unique index on categories.name is intentionally NOT created here;
+--   migration 20260218000001 adds it (its add_index is not idempotent).
+-- - Seed data comes from `rails db:seed` (backend/db/seeds.rb), which the
+--   backend container also runs on start.
 
--- Create expenses table
+CREATE TABLE IF NOT EXISTS categories (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  created_at DATETIME(6) NOT NULL,
+  updated_at DATETIME(6) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS expenses (
-  id INT AUTO_INCREMENT PRIMARY KEY,
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
   description VARCHAR(255) NOT NULL,
   amount DECIMAL(10,2) NOT NULL,
-  category_id INT NOT NULL,
-  payer_name VARCHAR(100) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
-  INDEX idx_category_id (category_id),
-  INDEX idx_created_at (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Seed categories
-INSERT INTO categories (name) VALUES
-  ('Food'),
-  ('Transport'),
-  ('Supplies'),
-  ('Entertainment'),
-  ('Utilities')
-ON DUPLICATE KEY UPDATE name=name;
-
--- Seed expenses
-INSERT INTO expenses (description, amount, category_id, payer_name) VALUES
-  ('Team Lunch at Italian Restaurant', 1500.50, 1, 'John Doe'),
-  ('Grab to Client Meeting', 350.00, 2, 'Jane Smith'),
-  ('Office Supplies - Pens and Paper', 450.75, 3, 'Mike Johnson'),
-  ('Team Building Dinner', 2800.00, 1, 'Sarah Lee'),
-  ('Taxi to Airport', 800.00, 2, 'John Doe'),
-  ('Coffee and Snacks for Meeting', 250.25, 1, 'Emily Chen'),
-  ('Printer Ink Cartridges', 680.00, 3, 'Mike Johnson'),
-  ('Uber for Site Visit', 420.50, 2, 'Jane Smith'),
-  ('Client Lunch Meeting', 1850.00, 1, 'Sarah Lee'),
-  ('Office Cleaning Supplies', 320.00, 3, 'Emily Chen'),
-  ('Team Movie Night', 1200.00, 4, 'John Doe'),
-  ('Internet Bill', 2500.00, 5, 'Mike Johnson'),
-  ('Breakfast Meeting with Client', 580.00, 1, 'Jane Smith'),
-  ('Bus Tickets for Conference', 150.00, 2, 'Sarah Lee'),
-  ('Electricity Bill', 3200.00, 5, 'Emily Chen');
+  date DATE NOT NULL,
+  category_id BIGINT NOT NULL,
+  created_at DATETIME(6) NOT NULL,
+  updated_at DATETIME(6) NOT NULL,
+  INDEX index_expenses_on_category_id (category_id),
+  CONSTRAINT fk_rails_06966d0da0 FOREIGN KEY (category_id) REFERENCES categories(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
