@@ -5,8 +5,8 @@ RSpec.describe "Api::Expenses", type: :request do
   let!(:transport_category) { Category.create!(name: "Transport") }
 
   describe "GET /api/expenses" do
-  let!(:expense1) { Expense.create!(description: "Lunch", amount: 100.00, category: food_category, date: Date.today) }
-  let!(:expense2) { Expense.create!(description: "Taxi", amount: 50.00, category: transport_category, date: Date.today) }
+    let!(:newer_expense) { Expense.create!(description: "Taxi", amount: 50.00, category: transport_category, date: Date.today) }
+    let!(:older_expense) { Expense.create!(description: "Lunch", amount: 100.00, category: food_category, date: Date.today.prev_month) }
 
     it "returns all expenses with category information" do
       get "/api/expenses"
@@ -16,12 +16,19 @@ RSpec.describe "Api::Expenses", type: :request do
       expect(json.length).to eq(2)
     end
 
-    it "returns expenses in descending order by created_at" do
+    it "returns expenses in descending order by date" do
       get "/api/expenses"
 
       json = JSON.parse(response.body)
-      expect(json.first["id"]).to eq(expense2.id)
-      expect(json.last["id"]).to eq(expense1.id)
+      expect(json.first["id"]).to eq(newer_expense.id)
+      expect(json.last["id"]).to eq(older_expense.id)
+    end
+
+    it "filters by year and month using the expense date" do
+      get "/api/expenses", params: { year: Date.today.year, month: Date.today.month }
+
+      json = JSON.parse(response.body)
+      expect(json.map { |expense| expense["id"] }).to eq([ newer_expense.id ])
     end
   end
 
@@ -46,7 +53,7 @@ RSpec.describe "Api::Expenses", type: :request do
         expect(response).to have_http_status(:created)
         json = JSON.parse(response.body)
         expect(json["description"]).to eq("Team Lunch")
-        expect(json["amount"]).to eq("150.5")
+        expect(json["amount"]).to eq(150.5)
       end
     end
 
