@@ -88,7 +88,7 @@ bin/brakeman --no-pager  # security static analysis
 Standard Rails API layout. The app is deliberately small:
 
 - `app/controllers/api/` — all controllers are namespaced under `Api::`; `ApplicationController < ActionController::API` is empty.
-- `app/models/` — `Category` and `Expense` only; `Category` validates `name` (presence, uniqueness, length); `Expense` has no validations yet.
+- `app/models/` — `Category` and `Expense` only; `Category` validates `name` (presence, uniqueness, length); `Expense` validates `date` is not in the future (BONUS-001).
 - `config/routes.rb` — `namespace :api` block; categories is index/create, expenses is index/create/update/destroy (no `show`).
 - `db/migrate/`, `db/schema.rb`, `db/seeds.rb` — schema.rb is the source of truth; seeds generate ~2 years of random sample expenses (Jan 2024 – Feb 2026) across 10 categories.
 - Models and controllers use plain Rails idioms; JSON is shaped inline in controllers.
@@ -118,7 +118,7 @@ Per `README.md` (assessment rules): create a dedicated branch per task, open a s
 
 - `rack-cors` is configured wide open (`origins "*"`, all methods) in `backend/config/initializers/cors.rb` — acceptable for local development, tighten before any real deployment.
 - There is **no authentication or authorization**; all API endpoints are public.
-- The `expenses` table has no model-level validations — negative amounts and empty descriptions are currently accepted (see TICKETS.md / request specs).
+- The `expenses` table still accepts negative amounts and empty descriptions (see TICKETS.md / request specs); only future dates are rejected (BONUS-001).
 - MySQL credentials in `docker-compose.yml` are development-only defaults; production expects `DATABASE_*` env vars and `SECRET_KEY_BASE` (see README "Environment Configuration").
 - Brakeman is available (`bin/brakeman`) for security scanning; run it when touching backend code.
 
