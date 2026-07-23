@@ -70,17 +70,23 @@ export async function createCategory(
 }
 
 /**
+ * Resolve a category name to its id
+ */
+async function resolveCategoryId(
+  categoryName: string,
+): Promise<number | undefined> {
+  const categories = await fetchCategories();
+  return categories.find((c) => c.name === categoryName)?.id;
+}
+
+/**
  * Create a new expense
  */
 export async function createExpense(data: ExpenseFormData): Promise<Expense> {
-  // Convert category name to category_id
-  const categories = await fetchCategories();
-  const category = categories.find((c) => c.name === data.category);
-
   const expenseData = {
     description: data.description,
     amount: data.amount,
-    category_id: category?.id,
+    category_id: await resolveCategoryId(data.category),
     date: data.date,
   };
 
@@ -106,12 +112,18 @@ export async function updateExpense(
   id: number,
   data: Partial<ExpenseFormData>,
 ): Promise<Expense> {
+  // The API expects category_id, not the category name from the form
+  const { category, ...rest } = data;
+  const expenseData = category
+    ? { ...rest, category_id: await resolveCategoryId(category) }
+    : rest;
+
   const response = await fetch(`${API_BASE_URL}/expenses/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ expense: data }),
+    body: JSON.stringify({ expense: expenseData }),
   });
 
   if (!response.ok) {

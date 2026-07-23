@@ -110,4 +110,16 @@ RSpec.describe "Api::Expenses", type: :request do
       end
     end
   end
+
+  describe "PUT /api/expenses/:id" do
+    it "updates an expense's category via category_id" do
+      expense = Expense.create!(description: "Lunch", amount: 100.00, category: food_category, date: Date.today)
+
+      put "/api/expenses/#{expense.id}", params: { expense: { category_id: transport_category.id } }, as: :json
+
+      expect(response).to have_http_status(:success)
+      json = JSON.parse(response.body)
+      expect(json["category"]).to eq("Transport")
+    end
+  end
 end
