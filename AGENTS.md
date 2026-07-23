@@ -13,12 +13,13 @@ This is a **full-stack expense tracking application** with calendar-based visual
 
 Domain model (two tables):
 
-- `categories` — `name` (string, max 100, unique index). `has_many :expenses, dependent: :destroy`.
+- `categories` — `name` (string, max 100, unique index). `has_many :expenses, dependent: :destroy`. Model validates `name` for presence, uniqueness (case-insensitive), and length ≤ 100.
 - `expenses` — `description` (string), `amount` (decimal 10,2), `date` (date), `category_id` (FK). `belongs_to :category`.
 
 API surface (all under `/api`, JSON only):
 
 - `GET /api/categories` — list categories ordered by name.
+- `POST /api/categories` — create a category (`name` required, unique, max 100); 422 with `errors` array on validation failure.
 - `GET /api/expenses?year=&month=` — list expenses; optional year/month filter.
 - `POST /api/expenses`, `PUT /api/expenses/:id`, `DELETE /api/expenses/:id`.
 - Expense JSON responses are hand-built in `Api::ExpensesController#format_expense` (no serializer/jbuilder); the category is returned as a **name string**, not an id/object.
@@ -87,20 +88,20 @@ bin/brakeman --no-pager  # security static analysis
 Standard Rails API layout. The app is deliberately small:
 
 - `app/controllers/api/` — all controllers are namespaced under `Api::`; `ApplicationController < ActionController::API` is empty.
-- `app/models/` — `Category` and `Expense` only; associations exist but there are no model validations yet.
-- `config/routes.rb` — `namespace :api` block; categories is index-only, expenses is index/create/update/destroy (no `show`).
+- `app/models/` — `Category` and `Expense` only; `Category` validates `name` (presence, uniqueness, length); `Expense` has no validations yet.
+- `config/routes.rb` — `namespace :api` block; categories is index/create, expenses is index/create/update/destroy (no `show`).
 - `db/migrate/`, `db/schema.rb`, `db/seeds.rb` — schema.rb is the source of truth; seeds generate ~2 years of random sample expenses (Jan 2024 – Feb 2026) across 10 categories.
 - Models and controllers use plain Rails idioms; JSON is shaped inline in controllers.
 
 ### Frontend (`frontend/src/`)
 
 - `main.tsx` → `App.tsx` — shell with a collapsible `Sidebar`; "routing" is manual `useState` page switching, **not** react-router (although `react-router-dom` is installed, it is unused).
-- `pages/HistoryPage.tsx` — the only page; owns expense fetching, year/month selection (synced to URL query params), category breakdown aggregation, and the Add Expense modal.
-- `components/` — feature components (`CalendarExpenseTable`, `CategoryBreakdown`, `ExpenseForm`, `MonthNavigation`, `YearNavigation`, `QuickAddButton`, `Sidebar`).
+- `pages/HistoryPage.tsx` — the only page; owns expense fetching, year/month selection (synced to URL query params), category breakdown aggregation, and the Add Expense / Add Category modals.
+- `components/` — feature components (`CalendarExpenseTable`, `CategoryBreakdown`, `ExpenseForm`, `AddCategoryModal`, `MonthNavigation`, `YearNavigation`, `QuickAddButton`, `Sidebar`).
 - `vibes/` — custom in-house component library (`Button`, `TextField`, `SelectBox`, `FormControl`, `Modal`, `ColumnBase`, `ItemTable`, `Pagination`) with a barrel `index.ts`. Reuse these instead of introducing new UI primitives or a CSS framework.
 - `services/api.ts` — all backend calls via `fetch`; base URL is hardcoded to `http://localhost:3000/api`.
 - `types.ts` — shared TypeScript interfaces (`Expense`, `ExpenseFormData`, etc.).
-- `constants/` — `colors.ts` (design tokens), `categories.ts` (hardcoded category names), `categoryEmojis.ts`.
+- `constants/` — `colors.ts` (design tokens), `categoryEmojis.ts`.
 - `hooks/`, `utils/` — `useExpenseForm`, `expenseUtils`.
 
 Frontend style conventions:
@@ -128,6 +129,6 @@ These are real as of writing — verify before relying on them, and don't "fix" 
 - `db/init.sql` mirrors the Rails schema but creates **tables only** — the unique index on `categories.name` is deliberately left to migration `20260218000001` (its `add_index` is not idempotent), and all seed data comes from `rails db:seed` on backend start. Keep it in sync with `backend/db/schema.rb` if migrations change.
 - `spec/factories/expenses.rb` still references the removed `payer_name` attribute, so the expense factory is broken.
 - `Api::ExpensesController#index` orders by `date DESC` (tiebroken by `id DESC`) and filters the month by `date` — `created_at` is only a record-keeping timestamp. (This mismatch was BUG-001 in `TICKETS.md`; it is fixed.)
-- The frontend duplicates category knowledge: `EXPENSE_CATEGORIES` constant on the client vs. seeded rows on the server, and `createExpense` resolves a category name to an id by re-fetching all categories.
+- `ExpenseForm` fetches its category options from `GET /api/categories` on mount (the hardcoded `EXPENSE_CATEGORIES` constant was removed in FEATURE-001); `createExpense` still resolves a category name to an id by re-fetching all categories.
 - `docker-compose.yml` sets `VITE_API_URL`, but `frontend/src/services/api.ts` ignores it (hardcoded base URL).
 - The seed date range (2024–2026) is anchored to the assessment timeframe; the calendar UI defaults to the current month, which may show no data without navigating.
