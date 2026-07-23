@@ -127,7 +127,7 @@ Per `README.md` (assessment rules): create a dedicated branch per task, open a s
 These are real as of writing — verify before relying on them, and don't "fix" them accidentally while doing unrelated work (TICKETS.md defines the sanctioned tasks):
 
 - `db/init.sql` mirrors the Rails schema but creates **tables only** — the unique index on `categories.name` is deliberately left to migration `20260218000001` (its `add_index` is not idempotent), and all seed data comes from `rails db:seed` on backend start. Keep it in sync with `backend/db/schema.rb` if migrations change.
-- `spec/factories/expenses.rb` still references the removed `payer_name` attribute, so the expense factory is broken.
+- `spec/factories/` are repaired and usable: the expense factory no longer references the removed `payer_name` attribute (has `date` + `category` association), and the category factory uses a name sequence (unique names).
 - `Api::ExpensesController#index` orders by `date DESC` (tiebroken by `id DESC`) and filters the month by `date` — `created_at` is only a record-keeping timestamp. (This mismatch was BUG-001 in `TICKETS.md`; it is fixed.)
 - `ExpenseForm` fetches its category options from `GET /api/categories` on mount (the hardcoded `EXPENSE_CATEGORIES` constant was removed in FEATURE-001); `createExpense` and `updateExpense` resolve a category name to an id via a shared `resolveCategoryId` helper that re-fetches all categories.
 - `docker-compose.yml` sets `VITE_API_URL`, but `frontend/src/services/api.ts` ignores it (hardcoded base URL).

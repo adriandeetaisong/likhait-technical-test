@@ -2,9 +2,9 @@
  * Calendar expense table component
  */
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Expense, ExpenseFormData } from "../types";
-import { formatCurrency, formatDate } from "../utils/expenseUtils";
+import { formatCurrency, formatDate, parseLocalDate } from "../utils/expenseUtils";
 import { getCategoryEmoji } from "../constants/categoryEmojis";
 import { COLORS } from "../constants/colors";
 import { Button, Modal, Pagination } from "../vibes";
@@ -27,6 +27,11 @@ export function CalendarExpenseTable({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  // Reset to the first page when the expense list changes (e.g. month switch)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [expenses]);
 
   const totalPages = Math.ceil(expenses.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -132,7 +137,7 @@ export function CalendarExpenseTable({
         <tbody>
           {currentExpenses.map((expense) => (
             <tr key={expense.id}>
-              <td style={tdStyle}>{formatDate(new Date(expense.date))}</td>
+              <td style={tdStyle}>{formatDate(parseLocalDate(expense.date))}</td>
               <td style={tdStyle}>{expense.description}</td>
               <td style={tdStyle}>
                 <span
@@ -192,7 +197,7 @@ export function CalendarExpenseTable({
               amount: editingExpense.amount.toString(),
               description: editingExpense.description,
               category: editingExpense.category,
-              date: formatDate(new Date(editingExpense.date)),
+              date: formatDate(parseLocalDate(editingExpense.date)),
             }}
             onSubmit={handleUpdate}
             onCancel={() => {
